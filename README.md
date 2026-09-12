@@ -1,31 +1,39 @@
 # FreqFuseNet: Resolving Feature-Scale Mismatch in Dual-Frequency Fusion for Thin-Wall Head-and-Neck OAR Segmentation
 
-This repository contains the official implementation of **FreqFuseNet**, a scale-normalized dual-frequency residual fusion architecture for segmenting thin-wall organs-at-risk (OARs) in head-and-neck CT scans.
+Official implementation accompanying the manuscript submitted to **Computer Methods and Programs in Biomedicine (CMPB)**.
 
-A preprint version of this work is available on medRxiv:
-> https://www.medrxiv.org/content/10.64898/2026.07.09.26357642v2
+**Preprint (medRxiv):** https://www.medrxiv.org/content/10.64898/2026.07.09.26357642v2
+**DOI:** 10.64898/2026.07.09.26357642
+
+**Authors:** Shu-Yen Wan¹, Wen-Yu Chen¹ᐟ³, Guan-Yu Lin²
+
+¹ Department of Information Management, Chang Gung University, Taoyuan 333323, Taiwan
+² Department of Otolaryngology, Head, and Neck Surgery, Chang Gung Memorial Hospital, Taoyuan 333423, Taiwan
+³ Department of Computer Science and Information Engineering, Chang Gung University, Taoyuan 333323, Taiwan
 
 ---
 
 ## Overview
 
-FreqFuseNet addresses a critical feature-scale mismatch between FcaNet and FFT-based frequency branches in dual-frequency fusion networks, and proposes a scale-normalized residual fusion strategy to resolve it. The method is developed and evaluated on the **SegRap2023** head-and-neck CT dataset.
+Thin-wall head-and-neck organs-at-risk (OARs) — the cochlea, vestibular semicircular canals, internal auditory canal, tympanic cavity, and middle ear — are small, boundary-dominated structures that are notoriously difficult to segment automatically, despite their importance for cochlear- and vestibular-sparing radiotherapy planning.
 
-The repository is organized as a staged research pipeline, reflecting the progressive development of the architecture from an initial focal-frequency loss baseline through to the final domain-generalization experiments.
+This project investigates dual-frequency (FFT + FcaNet) feature fusion for boundary-sensitive segmentation, and identifies a large activation-scale mismatch (~863×) between the two branches under FP16 mixed-precision training. Left uncorrected, this mismatch causes a nominal 5% residual fusion coefficient to behave as a roughly 43× dominant term, effectively inverting the intended FFT-dominant design.
+
+**FreqFuseNet** fixes this by rescaling the FcaNet branch to the FFT branch's activation statistics *before* residual fusion, restoring the fusion coefficient to its intended low-amplitude role. On the SegRap2023 benchmark (10 thin-wall OARs, 180 binary per-OAR test samples), FreqFuseNet reaches a mean Dice of 0.849 and HD95 of 0.824 mm in the primary run (consistent results in a second independent seed), with statistically significant case-level improvements over 3D U-Net and MedNeXt-S, using only 29.7M parameters — a ~93% reduction versus the full wavelet-based baseline.
 
 ## Repository Structure
 
 ```
 files/segrap_research/
 ├── configs/                        # Configuration files
-├── data/                           # Dataset loading utilities (SegRap2023 dataset class)
+├── data/                           # SegRap2023 dataset loading utilities
 ├── models/                         # Core model definitions and loss functions
-├── external_baselines/             # Baseline model comparisons (nnU-Net, etc.)
-├── stage1_focal_freq_loss/         # Stage 1: Focal frequency loss
-├── stage2_fcanet_plugin/           # Stage 2: FcaNet frequency-channel attention plugin
-├── stage3_fft_branch/              # Stage 3: FFT branch integration
-├── stage4_mamba_fusion/            # Stage 4: Mamba-based fusion module
-├── stage5_moe_router/              # Stage 5: Scale-normalized dual-frequency residual fusion (final architecture)
+├── external_baselines/             # 3D U-Net / MedNeXt-S / SegResNet baseline comparisons
+├── stage1_focal_freq_loss/         # Stage 1: DWT baseline + focal frequency loss
+├── stage2_fcanet_plugin/           # Stage 2: FcaNet frequency-channel attention
+├── stage3_fft_branch/              # Stage 3: FFT branch
+├── stage4_mamba_fusion/            # Stage 4: Mamba-based fusion (ablation only)
+├── stage5_moe_router/              # Stage 5: FixedFusion (5B) and FreqFuseNet scale-normalized residual fusion (5C, final architecture)
 ├── stage6_domain_generalization/   # Stage 6: Domain generalization experiments
 ├── utils/                          # Metrics and training utilities
 ├── requirements.txt                # Python dependencies
@@ -36,14 +44,19 @@ paper_viz/                          # Representative qualitative result figures 
 
 ## Dataset
 
-This project uses the **SegRap2023** head-and-neck CT dataset. The dataset is **not included** in this repository due to size and usage-license restrictions.
+Experiments use the **SegRap2023** head-and-neck CT benchmark (120 cases; 84 train / 18 val / 18 test), publicly available at:
+https://segrap2023.grand-challenge.org
 
-1. Request/download the dataset from the official SegRap2023 challenge page.
+The raw dataset is **not included** in this repository. To reproduce the experiments:
+
+1. Download the dataset from the official SegRap2023 challenge page (subject to the challenge's own data-use terms).
 2. Place it under:
    ```
    data/SegRap2023/Training_Set_120cases/SegRap2023_Training_Set_120cases/
    ```
-3. Update `--data_root` in the relevant training scripts (or `configs/config.py`) if you use a different location.
+3. Adjust `--data_root` in the relevant scripts (or `configs/config.py`) if using a different path.
+
+This work uses a controlled binary per-OAR ROI protocol: for each of 10 clinically prioritized thin-wall OARs, a bounding box is derived from the ground-truth annotation, expanded by a fixed margin, and resampled to 128×128×128.
 
 ## Requirements
 
@@ -53,28 +66,32 @@ pip install -r files/segrap_research/requirements.txt
 
 ## Usage
 
-Each stage directory contains its own `train.py` reflecting that stage of the architecture's development. For example, to train the final scale-normalized dual-frequency residual fusion model (Stage 5):
+Each stage directory contains the training script for that stage of the architecture's development. To train the final FreqFuseNet model (Stage 5C, scale-normalized residual fusion):
 
 ```bash
 cd files/segrap_research/stage5_moe_router
 python train_fft_residual.py --data_root ../data/SegRap2023/Training_Set_120cases/SegRap2023_Training_Set_120cases
 ```
 
-See each stage folder for stage-specific scripts (ablation studies, statistical analysis, etc.).
+Other stages (ablations, external baselines, domain-generalization experiments) follow the same pattern — see each folder for its specific script(s).
 
 ## Citation
 
 If you use this code, please cite:
 
 ```bibtex
-@article{freqfusenet2026,
+@article{wan2026freqfusenet,
   title   = {FreqFuseNet: Resolving Feature-Scale Mismatch in Dual-Frequency Fusion for Thin-Wall Head-and-Neck OAR Segmentation},
-  author  = {Wan, Shu-Yen and Chen, Wen-Yu},
+  author  = {Wan, Shu-Yen and Chen, Wen-Yu and Lin, Guan-Yu},
   year    = {2026},
-  journal = {medRxiv preprint},
+  journal = {medRxiv},
   doi     = {10.64898/2026.07.09.26357642}
 }
 ```
+
+## Data Availability
+
+All data analyzed in this study derive from the publicly available SegRap2023 head-and-neck CT dataset (https://segrap2023.grand-challenge.org). Processed data and trained models are available from the corresponding author upon reasonable request.
 
 ## Contact
 
