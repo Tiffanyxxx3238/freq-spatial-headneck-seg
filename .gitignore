@@ -1,0 +1,15 @@
+SegRap2023_Training_Set_120cases.zip
+result/
+segrap_results/
+segrap_pipeline_viz/
+*.tar.gz
+remote_results_files.txt
+local_results_files.txt
+remote_results_sha256.txt
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.pth
+*.h5
+*.ckpt
+.DS_Store

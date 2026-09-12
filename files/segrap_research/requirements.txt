@@ -1,0 +1,30 @@
+# Core deep learning
+torch>=2.0.0
+torchvision
+
+# Medical imaging I/O
+nibabel>=4.0.0
+
+# Image processing & wavelets
+numpy>=1.24.0
+scipy>=1.10.0
+scikit-image>=0.20.0
+PyWavelets>=1.4.0
+
+# MONAI (for DynUNet in Stage 2, optional preprocessing utilities)
+monai>=1.2.0
+
+# Mamba SSM (Stage 4); requires CUDA.  Install manually if needed:
+#   pip install mamba-ssm causal-conv1d
+# mamba-ssm
+
+# Experiment tracking & utilities
+pandas>=2.0.0
+statsmodels>=0.14.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+tqdm>=4.65.0
+wandb
+
+# nrrd (for NasalSeg original dataset compatibility)
+pynrrd
